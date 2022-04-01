@@ -1,0 +1,91 @@
+---
+title: "Flight Delay Case Study"
+author: "Scott Lovelady"
+date: "9/30/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load packages and data
+
+```{r}
+# Load packages
+library(tidyverse) 
+
+# Load data
+d <- read_csv("flight_delay_clean.csv")
+
+# Inspect data
+glimpse(d)
+summary(d)
+
+```
+
+### Mean, Median, Mode
+
+
+```{r}
+d %>%
+  group_by(airline) %>%
+  summarize(mean = mean(delay), 
+            median = median(delay),
+            percentile_90 = quantile(delay, prob = .9),
+            percentile_10 = quantile(delay, prob = .1),
+            sd = sd(delay))
+```
+
+> Median is a more appropriate measure of central tendency to use because RegionEx has several outliers that skew the mean.
+
+### Histogram Comparison
+
+
+```{r}
+ggplot(d, aes(x = delay)) + 
+  geom_histogram() + 
+  facet_wrap(~airline)
+```
+
+> RegionEx has a significantly higher count of delays. RegionEx also has several large outliers.
+
+### Percentage of Delayed Flights Comparison
+
+
+```{r}
+# Create a summary table of percent delayed by airline.
+d %>% 
+  group_by(airline) %>% 
+  summarize(n = n(),
+            percent_delay = (mean(delay_indicator) * 100) %>% round(1)) 
+
+```
+
+```{r}
+d %>% 
+  group_by(airline, route_code) %>% 
+  summarize(n = n(),
+            percent_delay = (mean(delay_indicator) * 100) %>% round(1)) 
+```
+
+
+> Looking at the raw mean, RegionEx does have a higher percentage of delayed flights than MDA. However, when you look at the percentage of delayed flights based on which route was flown, RegionEx actually has a lower or equal percentage of delayed flights than MDA on every route. RegionEx operates three times more flights in the DFW/MSY and MSY/DFW routes, which are prone to delays. 
+
+### Schedule Flight Time Comparison
+
+Compare the scheduled flight durations for the two airlines on each of their four routes and actual flight durations. 
+
+```{r}
+d %>%
+  group_by(airline, route_code) %>%
+  summarize(scheduled_median = median(scheduled_flight_length),
+            actual_median = median(actual_flight_length))
+
+```
+
+> MDA has longer scheduled flight times on all routes. RegionEx's median actual flight length is equal to or less than MDA's scheduled flight length. RegionEx would significantly decrease their occurrences of delayed flights if they increased the scheduled flight length on all their routes to match MDA's scheduled flight length.
+
+## Recommendation
+
+> The data does not support the claim that on-time performance of RegionEx is worse than that of MDA. This claim can be refuted by looking at the average delay on a per route basis. RegionEx flies DFW/MSY and MSY/DFW flights three times as often as MDA does. These routes are more prone to delays so RegionEx's average is dragged up by flying these routes more often than MDA does. But if you look at both airlines' average delay time on each route, MDA has a higher average delay time on every route. Secondly, MDA schedules their flights for longer times than RegionEx. RegionEx actually has lower average flight times than MDA. If RegionEx were to adjust their scheduled flight times to match MDA's, RegionEx would have lower delay occurrences and lower total delay minutes than MDA.
